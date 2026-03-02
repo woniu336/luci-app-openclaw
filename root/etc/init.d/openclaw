@@ -230,24 +230,18 @@ echo "正在调用 openclaw-env setup..."
 }
 
 restart_gateway() {
-# 仅重启 Gateway procd 实例，不影响 Web PTY
-# 使用 stop+start 而非 kill，可重置 procd crash loop 计数器
-local port
-port=$(uci -q get openclaw.main.port || echo "18789")
+# 仅重启 Gateway 进程，通过 kill 触发 procd respawn
+# 不调用 start_service，避免重新生成 pty_token 导致 PTY 连接断开
+local gw_pid=""
+gw_pid=$(ubus call service list '{"name":"openclaw"}' 2>/dev/null | \
+	jsonfilter -e '$.openclaw.instances.gateway.pid' 2>/dev/null) || true
 
-# 停止 gateway 实例 (通过 ubus，不影响 PTY 实例)
-ubus call service stop '{"name":"openclaw","instance":"gateway"}' 2>/dev/null || true
-
-# 等待端口释放
-local i=0
-while [ $i -lt 8 ]; do
-	netstat -tln 2>/dev/null | grep -q ":${port} " || break
-	sleep 1; i=$((i+1))
-done
-
-# 重新启动整个服务 (procd 会重建 gateway 实例，同时保留 PTY 实例)
-# procd 的 start_service 幂等：已运行的实例不会重复启动
-/etc/init.d/openclaw start >/dev/null 2>&1
+if [ -n "$gw_pid" ] && kill -0 "$gw_pid" 2>/dev/null; then
+	kill "$gw_pid" 2>/dev/null
+else
+	# 没有运行中的进程，直接 start（首次启动场景）
+	/etc/init.d/openclaw start >/dev/null 2>&1
+fi
 }
 
 status_service() {

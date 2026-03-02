@@ -164,12 +164,12 @@ restart_gateway() {
 	port=$(json_get gateway.port)
 	port=${port:-18789}
 
-	# ── 使用 init.d restart_gateway: 只重启 Gateway 实例，不影响 PTY 终端 ──
-	# 发 SIGTERM 给 gateway 进程，procd 自动 respawn，避免 crash loop 计数累积
+	# ── kill gateway 进程，让 procd respawn ──
+	# 不调用 init.d start，避免重新生成 pty_token 导致当前 PTY 会话断开
 	/etc/init.d/openclaw restart_gateway >/dev/null 2>&1
 
-	# ── 等待端口监听，最多 60 秒 (Node.js 冷启动实测约 40 秒) ──
-	echo -e "  ${YELLOW}⏳ Gateway 启动中，请稍候 (约 40 秒)...${NC}"
+	# ── 等待端口监听，最多 60 秒 (Node.js 冷启动实测约 15-40 秒) ──
+	echo -e "  ${YELLOW}⏳ Gateway 启动中，请稍候 (约 30 秒)...${NC}"
 	local waited=0
 	while [ $waited -lt 60 ]; do
 		sleep 3
@@ -180,27 +180,13 @@ restart_gateway() {
 		fi
 	done
 
-	# ── 超时仍未就绪: 先确认进程是否其实已经在运行 ──
-	# (可能端口刚好在轮询间隙启动完成)
+	# 超时后补一次立即检查（避免刚好在 sleep 间隙就绪时误判）
 	if check_port_listening "$port"; then
 		echo -e "  ${GREEN}✅ Gateway 已重启成功${NC}"
 		return 0
 	fi
 
-	# ── 确实未启动: 可能 procd crash loop 保护触发，用 start 解除 ──
-	echo -e "  ${YELLOW}⏳ 正在尝试再次启动...${NC}"
-	/etc/init.d/openclaw start >/dev/null 2>&1 &
-	waited=0
-	while [ $waited -lt 30 ]; do
-		sleep 3
-		waited=$((waited + 3))
-		if check_port_listening "$port"; then
-			echo -e "  ${GREEN}✅ Gateway 已重启成功${NC}"
-			return 0
-		fi
-	done
-
-	echo -e "  ${RED}❌ Gateway 可能未正常启动${NC}"
+	echo -e "  ${RED}❌ Gateway 启动超时，请稍后手动检查${NC}"
 	echo -e "  ${CYAN}   查看日志: logread -e openclaw${NC}"
 }
 
