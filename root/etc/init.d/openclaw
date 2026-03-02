@@ -85,17 +85,9 @@ if [ "$uci_token" != "$token" ]; then
 	uci commit openclaw 2>/dev/null
 fi
 
-# 生成基于设备的唯一实例名 (避免局域网多设备 bonjour 冲突)
-local dev_id
-dev_id=$(cat /sys/class/net/eth0/address 2>/dev/null | sed 's/://g' | tail -c 7 | tr -d '\n')
-[ -z "$dev_id" ] && dev_id=$(head -c 3 /dev/urandom | hexdump -e '3/1 "%02x"' 2>/dev/null || echo "$$")
-local instance_name
-instance_name="$(cat /proc/sys/kernel/hostname 2>/dev/null || echo OpenWrt)-${dev_id}"
-
 # 使用 Node.js 写入 JSON (如果可用)
 if [ -x "$NODE_BIN" ]; then
 OC_SYNC_PORT="$port" OC_SYNC_BIND="$bind" OC_SYNC_TOKEN="$token" OC_SYNC_FILE="$CONFIG_FILE" \
-OC_SYNC_INSTANCE="$instance_name" \
 "$NODE_BIN" -e "
 const fs=require('fs');
 const f=process.env.OC_SYNC_FILE;
@@ -112,12 +104,10 @@ if(!d.gateway.controlUi)d.gateway.controlUi={};
 d.gateway.controlUi.allowInsecureAuth=true;
 d.gateway.controlUi.dangerouslyDisableDeviceAuth=true;
 d.gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback=true;
-d.gateway.name=process.env.OC_SYNC_INSTANCE||'OpenClaw';
-if(!d.gateway.bonjour)d.gateway.bonjour={};
-d.gateway.bonjour.name=process.env.OC_SYNC_INSTANCE||'OpenClaw';
-if(!d.gateway.plugins)d.gateway.plugins={};
-const broken=['device-pair','memory-core','phone-control','talk-voice'];
-broken.forEach(p=>{if(!d.gateway.plugins[p])d.gateway.plugins[p]={};d.gateway.plugins[p].disabled=true;});
+// 清理 v2026.3.1+ 已废弃的字段，避免配置验证失败
+delete d.gateway.name;
+delete d.gateway.bonjour;
+delete d.gateway.plugins;
 fs.writeFileSync(f,JSON.stringify(d,null,2));
 " 2>/dev/null
 fi
