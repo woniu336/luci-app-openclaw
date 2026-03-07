@@ -190,7 +190,7 @@ register_custom_provider() {
 		d.models.providers[prov]={
 			baseUrl:process.env._RCP_URL,
 			apiKey:process.env._RCP_KEY,
-			api:'openai-responses',
+			api:'openai-chat-completions',
 			models:[{
 				id:process.env._RCP_MID,
 				name:process.env._RCP_MNAME,
@@ -510,7 +510,6 @@ configure_model() {
 			echo ""
 			prompt_with_default "请输入 DeepSeek API Key" "" api_key
 			if [ -n "$api_key" ]; then
-				auth_set_apikey deepseek "$api_key"
 				echo ""
 				echo -e "  ${CYAN}可用模型:${NC}"
 				echo -e "    ${CYAN}a)${NC} deepseek-chat     — DeepSeek-V3 (通用对话)"
@@ -524,6 +523,8 @@ configure_model() {
 					c) prompt_with_default "请输入模型名称" "deepseek-chat" model_name ;;
 					*) model_name="deepseek-chat" ;;
 				esac
+				auth_set_apikey deepseek "$api_key"
+				register_custom_provider deepseek "https://api.deepseek.com/v1" "$api_key" "$model_name" "$model_name"
 				register_and_set_model "deepseek/${model_name}"
 				echo -e "  ${GREEN}✅ DeepSeek 已配置，活跃模型: deepseek/${model_name}${NC}"
 			fi
@@ -637,7 +638,6 @@ configure_model() {
 			echo ""
 			prompt_with_default "请输入 xAI API Key" "" api_key
 			if [ -n "$api_key" ]; then
-				auth_set_apikey xai "$api_key"
 				echo ""
 				echo -e "  ${CYAN}可用模型:${NC}"
 				echo -e "    ${CYAN}a)${NC} grok-3       — Grok 3 旗舰"
@@ -651,6 +651,8 @@ configure_model() {
 					c) prompt_with_default "请输入模型名称" "grok-3" model_name ;;
 					*) model_name="grok-3" ;;
 				esac
+				auth_set_apikey xai "$api_key"
+				register_custom_provider xai "https://api.x.ai/v1" "$api_key" "$model_name" "$model_name"
 				register_and_set_model "xai/${model_name}"
 				echo -e "  ${GREEN}✅ xAI Grok 已配置，活跃模型: xai/${model_name}${NC}"
 			fi
@@ -663,7 +665,6 @@ configure_model() {
 			echo ""
 			prompt_with_default "请输入 Groq API Key" "" api_key
 			if [ -n "$api_key" ]; then
-				auth_set_apikey groq "$api_key"
 				echo ""
 				echo -e "  ${CYAN}可用模型:${NC}"
 				echo -e "    ${CYAN}a)${NC} llama-4-maverick-17b-128e  — Llama 4 Maverick (推荐)"
@@ -679,6 +680,8 @@ configure_model() {
 					d) prompt_with_default "请输入模型名称" "llama-4-maverick-17b-128e" model_name ;;
 					*) model_name="llama-4-maverick-17b-128e" ;;
 				esac
+				auth_set_apikey groq "$api_key"
+				register_custom_provider groq "https://api.groq.com/openai/v1" "$api_key" "$model_name" "$model_name"
 				register_and_set_model "groq/${model_name}"
 				echo -e "  ${GREEN}✅ Groq 已配置，活跃模型: groq/${model_name}${NC}"
 			fi
