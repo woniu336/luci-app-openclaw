@@ -252,10 +252,12 @@ function handleUpgrade(req, socket, head) {
   if (req.url !== '/ws' && !req.url.startsWith('/ws?')) { socket.destroy(); return; }
 
   // 认证: 验证查询参数中的 token
-  if (AUTH_TOKEN) {
+  // 每次连接时实时读取 UCI token (安装/升级可能重新生成 token)
+  const currentToken = loadAuthToken() || AUTH_TOKEN;
+  if (currentToken) {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const clientToken = url.searchParams.get('token') || '';
-    if (clientToken !== AUTH_TOKEN) {
+    if (clientToken !== currentToken) {
       console.log(`[oc-config] WS auth failed from ${socket.remoteAddress}`);
       socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
       socket.destroy();
