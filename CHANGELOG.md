@@ -24,6 +24,9 @@
 - **CBI 底部按钮未隐藏**: "保存并应用/保存/复位"按钮在基本设置页仍然显示
   - 根因: `m.submit = false` 和 `m.reset = false` 不被 CBI 框架识别
   - 修复: 改为 `m.pageaction = false` (dispatcher.lua 第 294 行检查的正确属性)
+- **插件升级后配置管理无法连接**: 升级后 PTY WebSocket 一直转圈 "等待服务就绪"
+  - 根因: `.run` 安装器覆盖 `/etc/config/openclaw` 导致 `pty_token` 丢失，PTY 认证失败
+  - 修复: 升级时保留用户 UCI 配置 (仅首次安装部署默认配置)；安装后自动重启 PTY 服务
 
 ## [1.0.8] - 2026-03-07
 
