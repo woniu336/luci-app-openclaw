@@ -589,6 +589,7 @@ configure_model() {
 					oc_cmd models auth login --provider copilot-proxy --set-default || echo -e "  ${YELLOW}OAuth 授权已退出${NC}"
 					echo ""
 					ask_restart
+					return
 					;;
 				b|*)
 					echo ""
@@ -641,6 +642,7 @@ configure_model() {
 					oc_cmd models auth login --provider qwen-portal --set-default || echo -e "  ${YELLOW}OAuth 授权已退出${NC}"
 					echo ""
 					ask_restart
+					return
 					;;
 				b)
 					echo ""
@@ -964,7 +966,7 @@ configure_model() {
 		0) return ;;
 	esac
 
-	if [ "$choice" != "0" ] && [ "$choice" != "1" ] && [ "$choice" != "8" ]; then
+	if [ "$choice" != "0" ] && [ "$choice" != "1" ]; then
 		echo ""
 		ask_restart
 	fi
