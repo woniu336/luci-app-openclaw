@@ -16,6 +16,7 @@
 
 #### 修复
 - **BusyBox tar 兼容性** (#18, #30): `openclaw-env` 安装 Node.js 时的解压命令优先使用 GNU tar `--strip-components=1`；若不支持则自动回退到 BusyBox tar 兼容方式（解压到临时目录后移动），无需用户手动安装 `tar`
+- **插件升级网络错误提示**: 下载后检测文件内容，若 GitHub 返回 `Not Found`（GFW 拦截等情况）则显示明确提示，并附手动下载链接
 
 ## [1.0.11] - 2026-03-09
 

@@ -391,8 +391,14 @@ function action_plugin_upgrade()
 		"else " ..
 		"  FSIZE=$(wc -c < /tmp/luci-app-openclaw-update.run 2>/dev/null | tr -d ' '); " ..
 		"  echo \"下载完成 (${FSIZE} bytes)\" >> /tmp/openclaw-plugin-upgrade.log; " ..
+		"  FHEAD=$(head -c 9 /tmp/luci-app-openclaw-update.run 2>/dev/null); " ..
 		"  if [ \"$FSIZE\" -lt 10000 ] 2>/dev/null; then " ..
-		"    echo '文件过小，可能下载失败或链接无效' >> /tmp/openclaw-plugin-upgrade.log; " ..
+		"    if [ \"$FHEAD\" = 'Not Found' ]; then " ..
+		"      echo '❌ GitHub 返回 \"Not Found\"，可能是网络被拦截（GFW）或 Release 资产不存在' >> /tmp/openclaw-plugin-upgrade.log; " ..
+		"    else " ..
+		"      echo '❌ 文件过小，可能 GitHub 访问受限或网络异常' >> /tmp/openclaw-plugin-upgrade.log; " ..
+		"    fi; " ..
+		"    echo '请检查路由器是否能访问 github.com，或手动下载后安装: %s' >> /tmp/openclaw-plugin-upgrade.log; " ..
 		"    echo 1 > /tmp/openclaw-plugin-upgrade.exit; " ..
 		"  else " ..
 		"    echo '' >> /tmp/openclaw-plugin-upgrade.log; " ..
@@ -409,7 +415,7 @@ function action_plugin_upgrade()
 		"  rm -f /tmp/luci-app-openclaw-update.run; " ..
 		"fi " ..
 		") & echo $! > /tmp/openclaw-plugin-upgrade.pid",
-		version, run_url, run_url
+		version, run_url, run_url, run_url
 	))
 
 	http.prepare_content("application/json")
