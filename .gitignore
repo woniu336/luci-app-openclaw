@@ -7,6 +7,9 @@ dist/
 *.ipk
 *.run
 
+# Runtime data (contains sensitive API keys / tokens)
+opt/
+
 # OS
 .DS_Store
 Thumbs.db
