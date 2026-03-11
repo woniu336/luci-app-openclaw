@@ -1,0 +1,168 @@
+name: Build Offline Bundle
+
+on:
+  push:
+    branches: [offline-bundle]
+    tags: ['v*-offline*', 'v*.offline*']
+  workflow_dispatch:
+    inputs:
+      node_version:
+        description: 'Node.js version'
+        default: '22.16.0'
+      oc_version:
+        description: 'OpenClaw version'
+        default: '2026.3.8'
+      upload_openlist:
+        description: 'Upload to OpenList'
+        type: boolean
+        default: false
+
+env:
+  NODE_VERSION: ${{ github.event.inputs.node_version || '22.16.0' }}
+  OC_VERSION: ${{ github.event.inputs.oc_version || '2026.3.8' }}
+
+jobs:
+  download-deps:
+    name: Download Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: offline-bundle
+
+      - name: Setup Node.js (构建机)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Download all dependencies
+        run: |
+          chmod +x scripts/download_deps.sh
+          sh scripts/download_deps.sh .offline-cache
+        env:
+          NODE_VERSION: ${{ env.NODE_VERSION }}
+          OC_VERSION: ${{ env.OC_VERSION }}
+
+      - name: Cache dependencies
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-cache
+          path: .offline-cache/
+          retention-days: 7
+
+  build:
+    name: Build .run packages
+    needs: download-deps
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: offline-bundle
+
+      - name: Download cached dependencies
+        uses: actions/download-artifact@v4
+        with:
+          name: offline-cache
+          path: .offline-cache/
+
+      - name: Build offline .run (all architectures)
+        run: |
+          chmod +x scripts/build_offline_run.sh
+          sh scripts/build_offline_run.sh dist/
+        env:
+          CACHE_DIR: .offline-cache
+
+      - name: List build artifacts
+        run: |
+          echo "=== Build artifacts ==="
+          ls -lh dist/
+          echo ""
+          echo "=== SHA256 checksums ==="
+          cat dist/*.sha256 2>/dev/null || true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-run-packages
+          path: |
+            dist/*_offline.run
+            dist/*.sha256
+
+  upload-openlist:
+    name: Upload to OpenList
+    needs: build
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.inputs.upload_openlist == 'true' ||
+      startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: offline-bundle
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: offline-run-packages
+          path: dist/
+
+      - name: Upload to OpenList
+        run: |
+          chmod +x scripts/upload_openlist.sh
+          sh scripts/upload_openlist.sh dist/
+        env:
+          OPENLIST_URL: ${{ secrets.OPENLIST_URL }}
+          OPENLIST_USER: ${{ secrets.OPENLIST_USER }}
+          OPENLIST_PASS: ${{ secrets.OPENLIST_PASS }}
+          OPENLIST_PATH: ${{ secrets.OPENLIST_PATH || '/openclaw/releases' }}
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: offline-run-packages
+          path: dist/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*_offline.run
+            dist/*.sha256
+          body: |
+            ## 🔌 离线安装包
+
+            本版本包含所有依赖，**无需联网**即可完成完整安装。
+
+            ### 📦 安装包说明
+
+            | 文件 | 适用设备 |
+            |------|---------|
+            | `*_x86_64-musl_offline.run` | x86 软路由 (iStoreOS/OpenWrt) |
+            | `*_x86_64-glibc_offline.run` | x86 (Ubuntu/Debian 路由) |
+            | `*_aarch64-musl_offline.run` | ARM64 (S905盒子/R4S/R5S/树莓派 + OpenWrt) |
+            | `*_aarch64-glibc_offline.run` | ARM64 (Ubuntu/Armbian 路由) |
+
+            > 大部分 iStoreOS/OpenWrt 用户请选择 **musl** 版本
+
+            ### 🚀 安装方法
+
+            ```bash
+            # 1. 将 .run 文件传输到路由器 (U盘/SCP/WinSCP)
+            # 2. SSH 登录路由器执行:
+            sh luci-app-openclaw_*_offline.run
+            ```
+
+            安装完成后访问 LuCI → 服务 → OpenClaw 配置模型即可使用。
+          draft: false
+          prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
