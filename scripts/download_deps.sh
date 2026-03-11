@@ -248,9 +248,22 @@ download_openclaw_deps() {
 	echo ""
 	echo "=== 打包 OpenClaw 依赖 ==="
 	local tarball="$oc_dir/openclaw-deps-v${actual_ver:-$OC_VERSION}.tar.gz"
-	(cd "$tmp_install/global" && tar czf "$tarball" .)
+	echo "  正在压缩 ${after_size}MB 数据到 tar.gz (可能需要数分钟)..."
+	# 注意: 不在子 shell 中用 set -e, 避免 tar 在处理损坏的符号链接时意外退出
+	# --warning=no-file-changed: 忽略打包过程中文件被修改的警告
+	if ! tar czf "$tarball" -C "$tmp_install/global" . 2>&1; then
+		log_error "tar 打包失败"
+		rm -f "$tarball"
+		exit 1
+	fi
+	# 验证 gzip 完整性
+	if ! gzip -t "$tarball" 2>/dev/null; then
+		log_error "tar.gz 文件完整性检查失败！"
+		rm -f "$tarball"
+		exit 1
+	fi
 	local tgz_size=$(du -h "$tarball" | cut -f1)
-	log_info "依赖包: $tarball ($tgz_size)"
+	log_info "依赖包: $tarball ($tgz_size) [完整性已验证]"
 
 	# 保存版本号
 	echo "${actual_ver:-$OC_VERSION}" > "$oc_dir/VERSION"
