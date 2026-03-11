@@ -221,7 +221,7 @@ act.cfgvalue = function(self, section)
 	html[#html+1] = '}catch(e){el.innerHTML="<span style=\\"color:red\\">❌ 错误</span>";}'
 	html[#html+1] = '});}'
 
-	-- 检测升级 (只检查插件版本)
+	-- 检测升级 (只检查插件版本，有新版本时显示更新内容)
 	html[#html+1] = 'function ocCheckUpdate(){'
 	html[#html+1] = 'var btn=document.getElementById("btn-check-update");'
 	html[#html+1] = 'var el=document.getElementById("action-result");'
@@ -240,12 +240,21 @@ act.cfgvalue = function(self, section)
 	html[#html+1] = '}'
 	html[#html+1] = 'if(msgs.length===0)msgs.push("<span style=\\"color:#999\\">无法获取版本信息</span>");'
 	html[#html+1] = 'el.innerHTML=msgs.join("<br/>");'
-	-- 插件有更新时: 一键升级按钮 + GitHub 下载链接
+	-- 插件有更新时: release notes + 一键升级按钮 + GitHub 下载链接
 	html[#html+1] = 'if(r.plugin_has_update){'
 	html[#html+1] = 'act.style.display="block";'
 	html[#html+1] = 'window._pluginLatestVer=r.plugin_latest;'
-	html[#html+1] = 'act.innerHTML=\'<button class="btn cbi-button cbi-button-apply" type="button" onclick="ocPluginUpgrade()" id="btn-plugin-upgrade">⬆️ 升级插件 v\'+r.plugin_latest+\'</button>\';'
-	html[#html+1] = 'act.innerHTML=act.innerHTML+\' <a href="https://github.com/10000ge10000/luci-app-openclaw/releases/latest" target="_blank" rel="noopener" class="btn cbi-button cbi-button-action" style="text-decoration:none;">📥 手动下载</a>\';'
+	html[#html+1] = 'var notesHtml="";'
+	html[#html+1] = 'if(r.release_notes){'
+	html[#html+1] = 'var escaped=r.release_notes.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");'
+	html[#html+1] = 'notesHtml=\'<div style="margin:10px 0 8px;padding:10px 14px;background:#fffbf0;border:1px solid #f0c040;border-radius:6px;">\''
+	html[#html+1] = '+\'<div style="font-size:12px;font-weight:600;color:#8a6a00;margin-bottom:6px;">📋 v\'+r.plugin_latest+\' 更新内容</div>\''
+	html[#html+1] = '+\'<pre style="margin:0;font-size:12px;color:#444;white-space:pre-wrap;word-break:break-word;line-height:1.6;">\'+escaped+\'</pre>\''
+	html[#html+1] = '+\'</div>\';'
+	html[#html+1] = '}'
+	html[#html+1] = 'act.innerHTML=notesHtml'
+	html[#html+1] = '+\'<button class="btn cbi-button cbi-button-apply" type="button" onclick="ocPluginUpgrade()" id="btn-plugin-upgrade">⬆️ 升级插件 v\'+r.plugin_latest+\'</button>\''
+	html[#html+1] = '+\' <a href="https://github.com/10000ge10000/luci-app-openclaw/releases/latest" target="_blank" rel="noopener" class="btn cbi-button cbi-button-action" style="text-decoration:none;">📥 手动下载</a>\';'
 	html[#html+1] = '}'
 	html[#html+1] = '}catch(e){el.innerHTML="<span style=\\"color:red\\">❌ 检测失败</span>";}'
 	html[#html+1] = '});}'

@@ -267,7 +267,7 @@ function action_check_update()
 	local http = require "luci.http"
 	local sys = require "luci.sys"
 
-	-- 插件版本检查 (从 GitHub API 获取最新 release tag)
+	-- 插件版本检查 (从 GitHub API 获取最新 release tag + release notes)
 	local plugin_current = ""
 	local pf = io.open("/usr/share/openclaw/VERSION", "r")
 		or io.open("/root/luci-app-openclaw/VERSION", "r")
@@ -277,14 +277,26 @@ function action_check_update()
 	end
 
 	local plugin_latest = ""
+	local release_notes = ""
 	local plugin_has_update = false
-	-- 使用 GitHub API 获取最新 release tag (轻量, 不下载任何文件)
-	local gh_resp = sys.exec("curl -sf --connect-timeout 5 --max-time 10 'https://api.github.com/repos/10000ge10000/luci-app-openclaw/releases/latest' 2>/dev/null | grep -o '\"tag_name\"[[:space:]]*:[[:space:]]*\"[^\"]*\"' | head -1 | cut -d'\"' -f4")
-	gh_resp = gh_resp:gsub("%s+", "")
-	if gh_resp ~= "" then
-		-- tag 可能是 v1.0.3 或 1.0.3
-		plugin_latest = gh_resp:gsub("^v", "")
+
+	-- 使用 GitHub API 获取最新 release (tag + body)
+	local gh_json = sys.exec("curl -sf --connect-timeout 5 --max-time 10 'https://api.github.com/repos/10000ge10000/luci-app-openclaw/releases/latest' 2>/dev/null")
+	if gh_json and gh_json ~= "" then
+		-- 提取 tag_name
+		local tag = gh_json:match('"tag_name"%s*:%s*"([^"]+)"')
+		if tag and tag ~= "" then
+			plugin_latest = tag:gsub("^v", ""):gsub("%s+", "")
+		end
+		-- 提取 body (release notes), 处理 JSON 转义
+		local body = gh_json:match('"body"%s*:%s*"(.-)"[,}%]]')
+		if body and body ~= "" then
+			-- 还原 JSON 转义: \n \r \" \\
+			body = body:gsub("\\n", "\n"):gsub("\\r", ""):gsub('\\"', '"'):gsub("\\\\", "\\")
+			release_notes = body
+		end
 	end
+
 	if plugin_current ~= "" and plugin_latest ~= "" and plugin_current ~= plugin_latest then
 		plugin_has_update = true
 	end
@@ -294,7 +306,8 @@ function action_check_update()
 		status = "ok",
 		plugin_current = plugin_current,
 		plugin_latest = plugin_latest,
-		plugin_has_update = plugin_has_update
+		plugin_has_update = plugin_has_update,
+		release_notes = release_notes
 	})
 end
 
