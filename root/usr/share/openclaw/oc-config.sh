@@ -1999,26 +1999,39 @@ backup_restore_menu() {
 				echo -e "  ${CYAN}将从以下备份恢复:${NC}"
 				echo -e "  ${DIM}${latest}${NC}"
 				echo ""
-				echo -e "  ${YELLOW}⚠️  这会覆盖当前的 openclaw.json 配置！${NC}"
+				echo -e "  ${YELLOW}⚠️  这会还原备份中的所有配置和数据文件到原路径！${NC}"
 				prompt_with_default "确认恢复? (y/N)" "N" confirm_restore
 				if [ "$confirm_restore" = "y" ] || [ "$confirm_restore" = "Y" ]; then
-					# 备份当前配置
-					cp -f "$CONFIG_FILE" "${CONFIG_FILE}.pre-restore" 2>/dev/null
-					# 从 tar.gz 中提取 openclaw.json
-					local tmp_json="${CONFIG_FILE}.tmp"
+					# 验证备份中 openclaw.json 有效
+					local tmp_json="/tmp/oc-restore-check.json"
 					tar -xzf "$latest" --wildcards '*/openclaw.json' -O > "$tmp_json" 2>/dev/null
-					if [ -s "$tmp_json" ] && "$NODE_BIN" -e "JSON.parse(require('fs').readFileSync('${tmp_json}','utf8'))" 2>/dev/null; then
-						mv -f "$tmp_json" "$CONFIG_FILE"
-						chown openclaw:openclaw "$CONFIG_FILE" 2>/dev/null
-						echo -e "  ${GREEN}✅ 配置已恢复！原配置已保存为 openclaw.json.pre-restore${NC}"
-						echo ""
-						prompt_with_default "是否重启服务使配置生效? (Y/n)" "Y" do_restart
-						if [ "$do_restart" != "n" ] && [ "$do_restart" != "N" ]; then
-							restart_gateway
-						fi
-					else
+					if [ ! -s "$tmp_json" ] || ! "$NODE_BIN" -e "JSON.parse(require('fs').readFileSync('${tmp_json}','utf8'))" 2>/dev/null; then
 						rm -f "$tmp_json"
 						echo -e "  ${RED}❌ 备份中的配置文件无效，恢复已取消${NC}"
+					else
+						rm -f "$tmp_json"
+						# 备份当前配置
+						cp -f "$CONFIG_FILE" "${CONFIG_FILE}.pre-restore" 2>/dev/null
+						# 获取备份名前缀
+						local backup_name=$(tar -tzf "$latest" 2>/dev/null | head -1 | cut -d/ -f1)
+						if [ -z "$backup_name" ]; then
+							echo -e "  ${RED}❌ 备份文件格式无法识别${NC}"
+						else
+							echo -e "  ${DIM}正在还原文件...${NC}"
+							# 停止服务
+							/etc/init.d/openclaw stop >/dev/null 2>&1
+							sleep 2
+							# 提取 payload 到根目录 (还原到原始绝对路径)
+							tar -xzf "$latest" --strip-components=3 -C / "${backup_name}/payload/posix/" 2>&1
+							# 修复权限
+							chown -R openclaw:openclaw /opt/openclaw/data/.openclaw 2>/dev/null
+							echo -e "  ${GREEN}✅ 配置和数据已完整恢复！原配置已保存为 openclaw.json.pre-restore${NC}"
+							echo ""
+							prompt_with_default "是否重启服务使配置生效? (Y/n)" "Y" do_restart
+							if [ "$do_restart" != "n" ] && [ "$do_restart" != "N" ]; then
+								restart_gateway
+							fi
+						fi
 					fi
 				else
 					echo -e "  ${DIM}已取消${NC}"
