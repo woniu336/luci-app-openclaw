@@ -56,15 +56,6 @@ fi
 
 mkdir -p "$OUT_DIR"
 
-# ── 架构映射表 ──
-# 格式: "标签|uname_arch|node_tarball_suffix|libc"
-ARCH_VARIANTS="
-x86_64-musl|x86_64|linux-x64-musl|musl
-x86_64-glibc|x86_64|linux-x64|glibc
-aarch64-musl|aarch64|linux-arm64-musl|musl
-aarch64-glibc|aarch64|linux-arm64|glibc
-"
-
 # ── 安装 LuCI 插件文件到暂存区 ──
 install_luci_files() {
 	local dest="$1"
@@ -550,14 +541,17 @@ build_one_variant() {
 SUCCESS=0
 FAILED=0
 
-echo "$ARCH_VARIANTS" | while IFS='|' read -r label uname_arch node_suffix libc; do
-	# 跳过空行
-	[ -z "$label" ] && continue
-	# 去除前后空格
-	label=$(echo "$label" | tr -d '[:space:]')
-	uname_arch=$(echo "$uname_arch" | tr -d '[:space:]')
-	node_suffix=$(echo "$node_suffix" | tr -d '[:space:]')
-	libc=$(echo "$libc" | tr -d '[:space:]')
+# 使用 for 循环避免 BusyBox ash 的 IFS/read 管道问题
+for variant in \
+	"x86_64-musl:x86_64:linux-x64-musl:musl" \
+	"x86_64-glibc:x86_64:linux-x64:glibc" \
+	"aarch64-musl:aarch64:linux-arm64-musl:musl" \
+	"aarch64-glibc:aarch64:linux-arm64:glibc" \
+; do
+	label=$(echo "$variant" | cut -d: -f1)
+	uname_arch=$(echo "$variant" | cut -d: -f2)
+	node_suffix=$(echo "$variant" | cut -d: -f3)
+	libc=$(echo "$variant" | cut -d: -f4)
 
 	if build_one_variant "$label" "$uname_arch" "$node_suffix" "$libc"; then
 		SUCCESS=$((SUCCESS + 1))

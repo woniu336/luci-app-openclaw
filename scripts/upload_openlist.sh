@@ -57,7 +57,7 @@ get_token() {
 		return
 	fi
 
-	echo "正在登录 OpenList..."
+	log_info "正在登录 OpenList..." >&2
 	local resp
 	resp=$(curl -s -X POST "${OPENLIST_URL}/api/auth/login" \
 		-H "Content-Type: application/json" \
@@ -74,12 +74,12 @@ get_token() {
 	fi
 
 	if [ -z "$token" ]; then
-		log_error "登录失败"
-		echo "  响应: $resp"
+		log_error "登录失败" >&2
+		echo "  响应: $resp" >&2
 		exit 1
 	fi
 
-	log_info "登录成功"
+	log_info "登录成功" >&2
 	echo "$token"
 }
 
@@ -139,7 +139,7 @@ echo "  本地目录:  ${DIST_DIR}"
 echo ""
 
 # 检查是否有文件要上传
-RUN_FILES=$(find "$DIST_DIR" -name "*_offline.run" -o -name "*.sha256" 2>/dev/null)
+RUN_FILES=$(find "$DIST_DIR" \( -name "*_offline.run" -o -name "*.sha256" \) 2>/dev/null)
 if [ -z "$RUN_FILES" ]; then
 	echo "错误: 未找到构建产物"
 	echo "  请先运行: sh scripts/build_offline_run.sh"

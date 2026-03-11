@@ -47,6 +47,17 @@ log_info()  { echo "  [✓] $1"; }
 log_warn()  { echo "  [!] $1"; }
 log_error() { echo "  [✗] $1"; }
 
+# 自动检测 Node.js / npm (兼容 OpenWrt 上已安装的 openclaw 环境)
+if ! command -v node >/dev/null 2>&1; then
+	for try_path in /opt/openclaw/node/bin /usr/local/bin; do
+		if [ -x "$try_path/node" ]; then
+			export PATH="$try_path:$PATH"
+			log_info "检测到 Node.js: $try_path/node"
+			break
+		fi
+	done
+fi
+
 # 下载文件 (支持 curl 和 wget)
 download_file() {
 	local url="$1" dest="$2"
@@ -126,12 +137,20 @@ download_openclaw_deps() {
 	local oc_dir="$CACHE_DIR/openclaw"
 	mkdir -p "$oc_dir"
 
-	# 检查 npm 或 node 是否可用 (构建机上需要)
-	if ! command -v npm >/dev/null 2>&1 && ! command -v node >/dev/null 2>&1; then
-		log_error "构建机上需要安装 Node.js 和 npm"
+	# 检查 npm 是否可用 (构建机上需要 node + npm)
+	local NPM_CMD=""
+	if command -v npm >/dev/null 2>&1; then
+		NPM_CMD="npm"
+	elif [ -x /opt/openclaw/node/bin/npm ]; then
+		# OpenWrt 上 npm wrapper 可能需要显式 node 调用
+		NPM_CMD="/opt/openclaw/node/bin/node /opt/openclaw/node/bin/npm"
+	else
+		log_error "构建机上需要 npm"
 		log_error "请执行: apt install -y nodejs npm 或 apk add nodejs npm"
+		log_error "或者确保 /opt/openclaw/node 中有 Node.js"
 		exit 1
 	fi
+	log_info "使用 npm: $NPM_CMD"
 
 	# 方案: 使用 npm install 到临时目录，然后打包整个 node_modules
 	# 这是最可靠的方式，确保所有依赖树完整
@@ -148,7 +167,7 @@ download_openclaw_deps() {
 	echo "=== 安装 OpenClaw 依赖 (通用包) ==="
 	mkdir -p "$tmp_install/global"
 	echo "  正在用 npm 安装 openclaw@${OC_VERSION}..."
-	npm install -g "openclaw@${OC_VERSION}" \
+	$NPM_CMD install -g "openclaw@${OC_VERSION}" \
 		--prefix="$tmp_install/global" \
 		--ignore-scripts \
 		--no-optional \
