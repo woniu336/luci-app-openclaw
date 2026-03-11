@@ -4,6 +4,15 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [1.0.12] - 2026-03-11
+
+### 移除 OpenClaw 版本检测，消除版本焦虑
+
+#### 变更
+- **「检测升级」按钮**: 不再检查 OpenClaw (npm) 版本，仅检查插件 (luci-app-openclaw) 是否有新版本
+- **状态面板**: 移除「OpenClaw」版本显示行，保留 Node.js 和插件版本
+- **内部清理**: 移除 `get_openclaw_version()` 函数、`action_do_update`、`action_upgrade_log` 等已废弃的 OpenClaw 升级相关后端 API
+
 ## [1.0.11] - 2026-03-09
 
 ### 修复 Telegram 配对后无法使用的严重 Bug
