@@ -289,7 +289,8 @@ function action_check_update()
 			plugin_latest = tag:gsub("^v", ""):gsub("%s+", "")
 		end
 		-- 提取 body (release notes), 处理 JSON 转义
-		local body = gh_json:match('"body"%s*:%s*"(.-)"[,}%]]')
+		-- 结束引号后可能紧跟 \n、空格、, 或 }，用宽松匹配
+		local body = gh_json:match('"body"%s*:%s*"(.-)"[,}%]\n ]')
 		if body and body ~= "" then
 			-- 还原 JSON 转义: \n \r \" \\
 			body = body:gsub("\\n", "\n"):gsub("\\r", ""):gsub('\\"', '"'):gsub("\\\\", "\\")
