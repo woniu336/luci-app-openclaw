@@ -13,30 +13,20 @@
   - 安装失败但目录存在时不再阻断配置流程
 
 ### ✨ 新增
-- **网盘上传模式**: `upload_openlist.sh` 支持 `UPLOAD_MODE` (offline/online/auto)，自动分类到 `openclaw-离线安装` 和 `openclaw-在线安装` 子目录
-- **Build & Release 工作流**: 添加 `upload_openlist` 输入项，支持一键上传到 OpenList 网盘
 - **覆盖安装防护**: 离线安装器在覆盖安装前先停止已有服务，避免文件被占用
-
-### 📝 文档
-- **README**: 添加离线安装方式五（无需联网），更新目录结构，添加 Offline Bundle badge
-
-## [2.0.0-offline.1] - 2026-03-12
-
-### 🔌 离线安装支持 (offline-bundle 分支)
-
-#### 新增
 - **离线 .run 安装包**: 构建包含 Node.js + OpenClaw + LuCI 插件的全合一自解压包，用户**无需联网**即可完成安装
-- **musl 架构支持**: 构建 x86_64-musl、aarch64-musl 两种离线包 (OpenWrt/iStoreOS 均使用 musl)
+- **musl 架构支持**: 离线包支持 x86_64-musl、aarch64-musl 两种架构 (OpenWrt/iStoreOS 均使用 musl)
 - **依赖预下载脚本** (`scripts/download_deps.sh`): 在构建机上预下载所有离线依赖
 - **离线构建脚本** (`scripts/build_offline_run.sh`): 将预下载的依赖打包为各架构的离线 .run
-- **OpenList 网盘上传** (`scripts/upload_openlist.sh`): 支持将构建产物上传到 OpenList (AList) 网盘，方便国内用户分发
-- **GitHub Actions CI** (`.github/workflows/build-offline.yml`): 自动构建 + 发布 + 上传网盘
-- **openclaw-env setup-offline**: 新增离线安装命令，由 .run 安装器自动调用
-- **node_modules 精简**: 自动删除文档、测试、TypeScript 源码、node-llama-cpp 等非必要文件，减小 30%+ 体积
+- **GitHub Actions CI** (`.github/workflows/build-offline.yml`): 离线包自动构建 + 发布
+- **node_modules 精简**: 自动删除文档、测试、TypeScript 源码等非必要文件，减小 30%+ 体积
 - **磁盘空间预检查**: 安装前检测可用空间是否满足 500MB 最低要求
 - **架构/libc 自动检测**: 安装时自动校验当前设备是否匹配安装包架构
 
-#### 变更
+### 📝 文档
+- **README**: 添加离线安装方式（无需联网），更新目录结构
+
+### 变更
 - **离线包不依赖 curl/openssl/git**: 离线安装模式下 opkg 注册的依赖简化为 luci-compat + luci-base
 
 ## [1.0.14] - 2026-03-12
