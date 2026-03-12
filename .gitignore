@@ -7,6 +7,9 @@ dist/
 *.ipk
 *.run
 
+# Offline dependency cache
+.offline-cache/
+
 # Runtime data (contains sensitive API keys / tokens)
 opt/
 
