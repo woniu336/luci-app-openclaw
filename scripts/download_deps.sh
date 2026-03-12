@@ -10,15 +10,9 @@
 #   cache_dir/
 #     node/
 #       node-v22.16.0-linux-x64-musl.tar.xz
-#       node-v22.16.0-linux-x64.tar.xz          (glibc)
 #       node-v22.16.0-linux-arm64-musl.tar.xz
-#       node-v22.16.0-linux-arm64.tar.xz         (glibc)
 #     openclaw/
-#       openclaw-<version>.tgz                   (npm packed tarball)
-#       openclaw-deps-x64-musl.tar.gz            (预安装的 node_modules)
-#       openclaw-deps-arm64-musl.tar.gz
-#       openclaw-deps-x64-glibc.tar.gz
-#       openclaw-deps-arm64-glibc.tar.gz
+#       openclaw-deps-v<version>.tar.gz          (预安装的 node_modules, 跨架构通用)
 # ============================================================================
 set -e
 
@@ -84,7 +78,7 @@ download_file() {
 download_all_node() {
 	echo ""
 	echo "╔══════════════════════════════════════════════════════════════╗"
-	echo "║  [1/3] 下载 Node.js v${NODE_VERSION} (全架构)                        ║"
+	echo "║  [1/3] 下载 Node.js v${NODE_VERSION} (musl 架构)                     ║"
 	echo "╚══════════════════════════════════════════════════════════════╝"
 	echo ""
 
@@ -98,26 +92,12 @@ download_all_node() {
 	download_file "${NODE_MIRROR_CN}/v${NODE_VERSION}/${x64_musl}" "$node_dir/$x64_musl" || \
 		log_error "x86_64 musl 下载失败"
 
-	# x86_64 glibc
-	echo "=== x86_64 glibc ==="
-	local x64_glibc="node-v${NODE_VERSION}-linux-x64.tar.xz"
-	download_file "${NODE_MIRROR}/v${NODE_VERSION}/${x64_glibc}" "$node_dir/$x64_glibc" || \
-	download_file "${NODE_MIRROR_CN}/v${NODE_VERSION}/${x64_glibc}" "$node_dir/$x64_glibc" || \
-		log_error "x86_64 glibc 下载失败"
-
 	# aarch64 musl (项目自托管)
 	echo "=== aarch64 musl ==="
 	local arm64_musl="node-v${NODE_VERSION}-linux-arm64-musl.tar.xz"
 	download_file "${NODE_SELF_HOST}/${arm64_musl}" "$node_dir/$arm64_musl" || \
 	download_file "${NODE_MUSL_MIRROR}/v${NODE_VERSION}/${arm64_musl}" "$node_dir/$arm64_musl" || \
 		log_error "aarch64 musl 下载失败"
-
-	# aarch64 glibc
-	echo "=== aarch64 glibc ==="
-	local arm64_glibc="node-v${NODE_VERSION}-linux-arm64.tar.xz"
-	download_file "${NODE_MIRROR}/v${NODE_VERSION}/${arm64_glibc}" "$node_dir/$arm64_glibc" || \
-	download_file "${NODE_MIRROR_CN}/v${NODE_VERSION}/${arm64_glibc}" "$node_dir/$arm64_glibc" || \
-		log_error "aarch64 glibc 下载失败"
 
 	echo ""
 	echo "Node.js 下载完成:"

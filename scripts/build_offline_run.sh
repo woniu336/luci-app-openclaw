@@ -11,9 +11,7 @@
 #
 # 产出:
 #   dist/luci-app-openclaw_<ver>_x86_64-musl_offline.run
-#   dist/luci-app-openclaw_<ver>_x86_64-glibc_offline.run
 #   dist/luci-app-openclaw_<ver>_aarch64-musl_offline.run
-#   dist/luci-app-openclaw_<ver>_aarch64-glibc_offline.run
 # ============================================================================
 set -e
 
@@ -555,9 +553,7 @@ FAILED=0
 # 使用 for 循环避免 BusyBox ash 的 IFS/read 管道问题
 for variant in \
 	"x86_64-musl:x86_64:linux-x64-musl:musl" \
-	"x86_64-glibc:x86_64:linux-x64:glibc" \
 	"aarch64-musl:aarch64:linux-arm64-musl:musl" \
-	"aarch64-glibc:aarch64:linux-arm64:glibc" \
 ; do
 	label=$(echo "$variant" | cut -d: -f1)
 	uname_arch=$(echo "$variant" | cut -d: -f2)

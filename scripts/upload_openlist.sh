@@ -139,7 +139,7 @@ echo "  本地目录:  ${DIST_DIR}"
 echo ""
 
 # 检查是否有文件要上传
-RUN_FILES=$(find "$DIST_DIR" \( -name "*_offline.run" -o -name "*.sha256" -o -name "README.txt" \) 2>/dev/null)
+RUN_FILES=$(find "$DIST_DIR" \( -name "*_offline.run" -o -name "README.txt" \) 2>/dev/null)
 if [ -z "$RUN_FILES" ]; then
 	echo "错误: 未找到构建产物"
 	echo "  请先运行: sh scripts/build_offline_run.sh"
