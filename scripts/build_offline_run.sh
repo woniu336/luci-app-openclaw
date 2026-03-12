@@ -411,6 +411,17 @@ STEOF
 
 echo "  [✓] 已注册到 opkg"
 
+# 写入离线安装标记 (供 LuCI 界面识别安装方式)
+cat > /usr/share/openclaw/.offline-install << OFFEOF
+type=offline
+date=$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date)
+arch=${TARGET_ARCH}-${TARGET_LIBC}
+node=$($NODE_BASE/bin/node --version 2>/dev/null || echo unknown)
+openclaw=${OC_VER:-unknown}
+plugin=__PKG_VERSION__
+OFFEOF
+echo "  [✓] 离线安装标记已写入"
+
 # 执行 uci-defaults
 if [ -f /etc/uci-defaults/99-openclaw ]; then
 	( . /etc/uci-defaults/99-openclaw ) && rm -f /etc/uci-defaults/99-openclaw
