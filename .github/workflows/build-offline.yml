@@ -86,6 +86,7 @@ jobs:
           OPENLIST_USER: ${{ secrets.OPENLIST_USER }}
           OPENLIST_PASS: ${{ secrets.OPENLIST_PASS }}
           OPENLIST_PATH: ${{ secrets.OPENLIST_PATH }}
+          UPLOAD_MODE: offline
 
       - name: Create GitHub Release
         if: github.event.inputs.create_release == 'true'

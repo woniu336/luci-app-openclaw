@@ -12,6 +12,11 @@ on:
         required: false
         type: boolean
         default: true
+      upload_openlist:
+        description: '是否上传到 OpenList 网盘'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -79,6 +84,18 @@ jobs:
         with:
           name: luci-app-openclaw-${{ steps.version.outputs.version }}
           path: dist/*
+
+      - name: Upload to OpenList
+        if: github.event.inputs.upload_openlist == 'true'
+        run: |
+          chmod +x scripts/upload_openlist.sh
+          sh scripts/upload_openlist.sh dist/
+        env:
+          OPENLIST_URL: ${{ secrets.OPENLIST_URL }}
+          OPENLIST_USER: ${{ secrets.OPENLIST_USER }}
+          OPENLIST_PASS: ${{ secrets.OPENLIST_PASS }}
+          OPENLIST_PATH: ${{ secrets.OPENLIST_PATH }}
+          UPLOAD_MODE: online
 
       - name: Create Release
         if: ${{ github.event.inputs.create_release == 'true' }}
