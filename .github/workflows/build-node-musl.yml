@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       node_version:
-        description: 'Node.js 版本 (如 22.16.0)'
+        description: 'Node.js 版本 (Alpine apk 实际版本为准，当前 Alpine 3.21 = v22.15.1)'
         required: true
-        default: '22.16.0'
+        default: '22.15.1'
 
 jobs:
   build:
@@ -64,7 +64,7 @@ jobs:
             Node.js 官方 [unofficial-builds](https://unofficial-builds.nodejs.org/) 仅提供 x64 musl 构建，不提供 ARM64 musl。
             此 Release 使用 Alpine Linux ARM64 (musl libc) 环境打包。
 
-            **注意**: 实际 Node.js 版本可能与文件名中的版本略有差异（取决于 Alpine 仓库提供的版本），
-            但主版本号 (v22.x) 保证兼容。
+            **注意**: 文件名中的版本号为 Alpine `apk add nodejs` 实际安装的版本。
+            Alpine 3.21 当前提供 Node.js v22.15.1。
 
             `openclaw-env setup` 会在 ARM64 musl 设备上自动从此处下载。

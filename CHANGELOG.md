@@ -26,7 +26,7 @@
 
 #### 新增
 - **离线 .run 安装包**: 构建包含 Node.js + OpenClaw + LuCI 插件的全合一自解压包，用户**无需联网**即可完成安装
-- **全架构支持**: 同时构建 x86_64-musl、x86_64-glibc、aarch64-musl、aarch64-glibc 四种离线包
+- **musl 架构支持**: 构建 x86_64-musl、aarch64-musl 两种离线包 (OpenWrt/iStoreOS 均使用 musl)
 - **依赖预下载脚本** (`scripts/download_deps.sh`): 在构建机上预下载所有离线依赖
 - **离线构建脚本** (`scripts/build_offline_run.sh`): 将预下载的依赖打包为各架构的离线 .run
 - **OpenList 网盘上传** (`scripts/upload_openlist.sh`): 支持将构建产物上传到 OpenList (AList) 网盘，方便国内用户分发
