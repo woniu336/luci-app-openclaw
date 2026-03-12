@@ -185,15 +185,72 @@ download_openclaw_deps() {
 	echo "  实际版本: v${actual_ver:-$OC_VERSION}"
 
 	# ── 精简 node_modules ──
+	# npm install -g 完全忽略 --omit=optional / --no-optional 标志，
+	# 因此必须通过 post-install 删除来控制包大小。
+	# 目标: 从 ~520MB 精简到 ~140MB (压缩后 ~60MB)
 	echo ""
 	echo "=== 精简 node_modules ==="
+	local NM="$tmp_install/global/lib/node_modules/openclaw/node_modules"
 	local before_size=$(du -sm "$tmp_install/global" 2>/dev/null | awk '{print $1}')
 
-	# 删除不必要的文件以减小体积
+	# ── 第1步: 删除 peerDependencies 和路由器上不可用的原生模块 ──
+	# 这些包使用动态 import() + .catch() 或 lazy require，缺失时不影响启动
+	echo "  [1/5] 删除不可用的原生模块..."
+	rm -rf \
+		"$NM/koffi" \
+		"$NM/node-llama-cpp" \
+		"$NM/@napi-rs" \
+		"$NM/playwright-core" \
+		2>/dev/null || true
+
+	# ── 第2步: 删除可选的平台集成 SDK ──
+	# OpenClaw 使用代码分割，各聊天平台在独立 chunk 中加载
+	# 离线包仅保留核心 AI 网关功能，不含社交平台集成
+	echo "  [2/5] 删除可选的平台集成 SDK..."
+	rm -rf \
+		"$NM/@larksuiteoapi" \
+		"$NM/@line" \
+		"$NM/@buape" \
+		"$NM/@slack" \
+		"$NM/@aws-sdk" \
+		"$NM/@smithy" \
+		"$NM/@whiskeysockets" \
+		"$NM/libsignal" \
+		"$NM/@cloudflare" \
+		"$NM/@octokit" \
+		"$NM/@mistralai" \
+		"$NM/@google" \
+		"$NM/discord-api-types" \
+		"$NM/@discordjs" \
+		"$NM/@mariozechner" \
+		"$NM/web-streams-polyfill" \
+		2>/dev/null || true
+
+	# ── 第3步: 清理 pdfjs-dist 冗余文件 ──
+	# 只保留 Node.js 运行所需的 build/ 和必要资源
+	echo "  [3/5] 清理 pdfjs-dist..."
+	rm -rf \
+		"$NM/pdfjs-dist/legacy" \
+		"$NM/pdfjs-dist/types" \
+		"$NM/pdfjs-dist/web" \
+		"$NM/pdfjs-dist/image_decoders" \
+		2>/dev/null || true
+
+	# ── 第4步: 删除平台预编译二进制和运行时不需要的文件 ──
+	# @img/sharp-libvips-* 是 sharp 的预编译 libvips (每个平台 16MB)
+	# 安装时由 openclaw-env 通过 npm rebuild 按目标平台重建
+	echo "  [4/5] 删除预编译二进制和类型声明..."
+	rm -rf "$NM/@img" 2>/dev/null || true
+	rm -rf "$NM/bun-types" "$NM/@types" 2>/dev/null || true
+	find "$tmp_install/global" -type d -name "prebuilds" -exec rm -rf {} + 2>/dev/null || true
+	find "$tmp_install/global" -type f -name "*.node" -delete 2>/dev/null || true
+
+	# ── 第5步: 通用文件清理 ──
+	echo "  [5/5] 清理文档、测试和冗余文件..."
 	find "$tmp_install/global" -type f \( \
 		-name "*.md" -o -name "*.markdown" -o \
-		-name "*.map" -o \
-		-name "*.ts" -not -name "*.d.ts" -o \
+		-name "*.js.map" -o -name "*.ts.map" -o -name "*.d.ts.map" -o \
+		-name "*.d.ts" -o \
 		-name "CHANGELOG*" -o -name "CHANGES*" -o -name "HISTORY*" -o \
 		-name "AUTHORS*" -o -name "CONTRIBUTORS*" -o \
 		-name ".npmignore" -o -name ".eslintrc*" -o -name ".jshintrc" -o \
@@ -203,35 +260,14 @@ download_openclaw_deps() {
 		-name "tsconfig.json" -o -name "tsconfig.*.json" -o \
 		-name ".prettierrc*" -o -name ".babelrc*" \
 	\) -delete 2>/dev/null || true
-
-	# 删除测试目录和文档目录
-	# 注意: 不删除 "doc", 因为某些包 (如 yaml) 的 dist/doc/ 是运行时代码
 	find "$tmp_install/global" -type d \( \
 		-name "test" -o -name "tests" -o -name "__tests__" -o \
 		-name "example" -o -name "examples" -o \
-		-name "docs" -o \
-		-name ".github" -o -name ".vscode" -o \
+		-name "docs" -o -name ".github" -o -name ".vscode" -o \
 		-name "benchmark" -o -name "benchmarks" \
 	\) -exec rm -rf {} + 2>/dev/null || true
 
-	# 删除 node-llama-cpp 等大型原生依赖 (musl 下不可用)
-	find "$tmp_install/global" -type d -name "node-llama-cpp" -exec rm -rf {} + 2>/dev/null || true
-	find "$tmp_install/global" -type d -name "llama-cpp" -exec rm -rf {} + 2>/dev/null || true
-
-	# 删除其他已知的大型非必要包
-	# koffi: FFI 库，~85MB 原生二进制，OpenWrt 上不需要
-	# playwright-core: 浏览器自动化，~10MB，路由器上不用
-	# @img/*: 图片处理原生模块
-	for big_pkg in koffi playwright-core @img; do
-		find "$tmp_install/global" -type d -name "$big_pkg" -path "*/node_modules/*" -exec rm -rf {} + 2>/dev/null || true
-	done
-
-	# 删除所有平台特定的预编译二进制 (.node 文件和 prebuilds 目录)
-	find "$tmp_install/global" -type d -name "prebuilds" -exec rm -rf {} + 2>/dev/null || true
-	find "$tmp_install/global" -type f -name "*.node" -delete 2>/dev/null || true
-
-	# 删除 .bin 目录中的符号链接 (安装时会重建)
-	# 保留 bin 目录但不保留符号链接
+	# 删除 .bin 符号链接 (安装时由 openclaw-env 重建)
 	find "$tmp_install/global/lib/node_modules/.bin" -type l -delete 2>/dev/null || true
 	find "$tmp_install/global/node_modules/.bin" -type l -delete 2>/dev/null || true
 
