@@ -223,10 +223,11 @@ download_openclaw_deps() {
 	\) -delete 2>/dev/null || true
 
 	# 删除测试目录和文档目录
+	# 注意: 不删除 "doc", 因为某些包 (如 yaml) 的 dist/doc/ 是运行时代码
 	find "$tmp_install/global" -type d \( \
 		-name "test" -o -name "tests" -o -name "__tests__" -o \
 		-name "example" -o -name "examples" -o \
-		-name "docs" -o -name "doc" -o \
+		-name "docs" -o \
 		-name ".github" -o -name ".vscode" -o \
 		-name "benchmark" -o -name "benchmarks" \
 	\) -exec rm -rf {} + 2>/dev/null || true
