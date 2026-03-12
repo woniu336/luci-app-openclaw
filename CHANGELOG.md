@@ -4,6 +4,22 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [1.0.15] - 2026-03-13
+
+### 🐛 修复
+- **QQBot 插件 3 层死锁修复**: 解决插件安装后因 uid 权限→安全策略阻止→配置校验失败的连锁问题
+  - 自动检测插件 blocked/loaded/目录存在 3 种状态
+  - 插件安装后自动 `chown root:root` 修复权限
+  - 安装失败但目录存在时不再阻断配置流程
+
+### ✨ 新增
+- **网盘上传模式**: `upload_openlist.sh` 支持 `UPLOAD_MODE` (offline/online/auto)，自动分类到 `openclaw-离线安装` 和 `openclaw-在线安装` 子目录
+- **Build & Release 工作流**: 添加 `upload_openlist` 输入项，支持一键上传到 OpenList 网盘
+- **覆盖安装防护**: 离线安装器在覆盖安装前先停止已有服务，避免文件被占用
+
+### 📝 文档
+- **README**: 添加离线安装方式五（无需联网），更新目录结构，添加 Offline Bundle badge
+
 ## [2.0.0-offline.1] - 2026-03-12
 
 ### 🔌 离线安装支持 (offline-bundle 分支)
