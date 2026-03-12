@@ -187,7 +187,7 @@ download_openclaw_deps() {
 	# ── 精简 node_modules ──
 	# npm install -g 完全忽略 --omit=optional / --no-optional 标志，
 	# 因此必须通过 post-install 删除来控制包大小。
-	# 目标: 从 ~520MB 精简到 ~140MB (压缩后 ~60MB)
+	# 目标: 从 ~670MB 精简到 ~440MB (压缩后 ~66MB)
 	echo ""
 	echo "=== 精简 node_modules ==="
 	local NM="$tmp_install/global/lib/node_modules/openclaw/node_modules"
@@ -195,7 +195,11 @@ download_openclaw_deps() {
 
 	# ── 第1步: 删除 peerDependencies 和路由器上不可用的原生模块 ──
 	# 这些包使用动态 import() + .catch() 或 lazy require，缺失时不影响启动
-	echo "  [1/5] 删除不可用的原生模块..."
+	# koffi (86MB): FFI 库，@mariozechner/pi-tui 可选依赖
+	# node-llama-cpp (33MB): 本地 LLM 推理，peerDependency
+	# @napi-rs/canvas (30MB): 画布渲染，peerDependency，有 .catch() 兜底
+	# playwright-core (10MB): 浏览器自动化，路由器上无浏览器
+	echo "  [1/4] 删除不可用的原生模块 (~159MB)..."
 	rm -rf \
 		"$NM/koffi" \
 		"$NM/node-llama-cpp" \
@@ -203,32 +207,9 @@ download_openclaw_deps() {
 		"$NM/playwright-core" \
 		2>/dev/null || true
 
-	# ── 第2步: 删除可选的平台集成 SDK ──
-	# OpenClaw 使用代码分割，各聊天平台在独立 chunk 中加载
-	# 离线包仅保留核心 AI 网关功能，不含社交平台集成
-	echo "  [2/5] 删除可选的平台集成 SDK..."
-	rm -rf \
-		"$NM/@larksuiteoapi" \
-		"$NM/@line" \
-		"$NM/@buape" \
-		"$NM/@slack" \
-		"$NM/@aws-sdk" \
-		"$NM/@smithy" \
-		"$NM/@whiskeysockets" \
-		"$NM/libsignal" \
-		"$NM/@cloudflare" \
-		"$NM/@octokit" \
-		"$NM/@mistralai" \
-		"$NM/@google" \
-		"$NM/discord-api-types" \
-		"$NM/@discordjs" \
-		"$NM/@mariozechner" \
-		"$NM/web-streams-polyfill" \
-		2>/dev/null || true
-
-	# ── 第3步: 清理 pdfjs-dist 冗余文件 ──
+	# ── 第2步: 清理 pdfjs-dist 冗余文件 ──
 	# 只保留 Node.js 运行所需的 build/ 和必要资源
-	echo "  [3/5] 清理 pdfjs-dist..."
+	echo "  [2/4] 清理 pdfjs-dist (~22MB)..."
 	rm -rf \
 		"$NM/pdfjs-dist/legacy" \
 		"$NM/pdfjs-dist/types" \
@@ -236,17 +217,17 @@ download_openclaw_deps() {
 		"$NM/pdfjs-dist/image_decoders" \
 		2>/dev/null || true
 
-	# ── 第4步: 删除平台预编译二进制和运行时不需要的文件 ──
-	# @img/sharp-libvips-* 是 sharp 的预编译 libvips (每个平台 16MB)
+	# ── 第3步: 删除平台预编译二进制和运行时不需要的文件 ──
+	# @img/sharp-libvips-* 是 sharp 的预编译 libvips (每个平台 ~16MB)
 	# 安装时由 openclaw-env 通过 npm rebuild 按目标平台重建
-	echo "  [4/5] 删除预编译二进制和类型声明..."
+	echo "  [3/4] 删除预编译二进制和类型声明 (~23MB)..."
 	rm -rf "$NM/@img" 2>/dev/null || true
 	rm -rf "$NM/bun-types" "$NM/@types" 2>/dev/null || true
 	find "$tmp_install/global" -type d -name "prebuilds" -exec rm -rf {} + 2>/dev/null || true
 	find "$tmp_install/global" -type f -name "*.node" -delete 2>/dev/null || true
 
-	# ── 第5步: 通用文件清理 ──
-	echo "  [5/5] 清理文档、测试和冗余文件..."
+	# ── 第4步: 通用文件清理 ──
+	echo "  [4/4] 清理文档、测试和冗余文件..."
 	find "$tmp_install/global" -type f \( \
 		-name "*.md" -o -name "*.markdown" -o \
 		-name "*.js.map" -o -name "*.ts.map" -o -name "*.d.ts.map" -o \
