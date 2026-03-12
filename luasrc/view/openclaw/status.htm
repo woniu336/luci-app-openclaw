@@ -157,14 +157,8 @@
 					if (d.install_arch) tip += ' (' + d.install_arch + ')';
 					if (d.install_date) tip += '\n安装时间: ' + d.install_date;
 					itEl.innerHTML = '<span class="oc-badge oc-badge-offline" title="' + tip.replace(/"/g,'&quot;') + '">📦 离线版</span>';
-					// 面板标题也标注离线版
-					var titleEl = document.getElementById('oc-panel-title');
-					if (titleEl && titleEl.getAttribute('data-tagged') !== '1') {
-						titleEl.innerHTML += ' <span style="font-size:11px;background:rgba(255,255,255,0.25);padding:2px 10px;border-radius:10px;font-weight:400;vertical-align:middle;">OFFLINE</span>';
-						titleEl.setAttribute('data-tagged', '1');
-					}
 				} else {
-					itEl.innerHTML = '<span class="oc-badge oc-badge-online">🌐 在线安装</span>';
+					itEl.innerHTML = '<span class="oc-badge oc-badge-online" title="通过网络在线安装">🌐 在线版</span>';
 				}
 
 			} catch(e) {
