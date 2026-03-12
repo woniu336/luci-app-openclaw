@@ -240,7 +240,7 @@ ARCHIVE=$(awk '/^__ARCHIVE_BELOW__/ {print NR + 1; exit 0; }' "$0")
 EXTRACT_DIR=$(mktemp -d)
 trap "rm -rf '$EXTRACT_DIR'" EXIT
 
-tail -n +$ARCHIVE "$0" | tar xzf - -C "$EXTRACT_DIR" 2>/dev/null
+tail -n +$ARCHIVE "$0" | tar xf - -C "$EXTRACT_DIR" 2>/dev/null
 
 # ── [Step 1/5] 安装 LuCI 插件文件 ──
 echo ""
@@ -538,13 +538,13 @@ build_one_variant() {
 	} > "$staging/install_final.sh"
 	mv "$staging/install_final.sh" "$staging/install.sh"
 
-	# [3] 打包 payload
+	# [3] 打包 payload (不压缩, 因为 node.tar.xz 和 openclaw-deps.tar.gz 已压缩)
 	echo "  [5/5] 打包..."
-	(cd "$payload" && tar czf "$staging/payload.tar.gz" .)
+	(cd "$payload" && tar cf "$staging/payload.tar" .)
 
 	# [4] 组合: installer + payload
 	local run_file="$OUT_DIR/${PKG_NAME}_${PKG_VERSION}_${label}_offline.run"
-	cat "$staging/install.sh" "$staging/payload.tar.gz" > "$run_file"
+	cat "$staging/install.sh" "$staging/payload.tar" > "$run_file"
 	chmod +x "$run_file"
 
 	local file_size=$(wc -c < "$run_file" | tr -d ' ')

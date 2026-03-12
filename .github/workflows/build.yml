@@ -134,6 +134,7 @@ jobs:
           name: luci-app-openclaw-${{ steps.version.outputs.version }}
           path: dist/*
           retention-days: 30
+          compression-level: 0
 
       - name: Upload to OpenList (online)
         if: github.event.inputs.upload_openlist == 'true'
