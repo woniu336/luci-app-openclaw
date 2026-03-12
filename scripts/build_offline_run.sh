@@ -31,7 +31,7 @@ esac
 
 PKG_NAME="luci-app-openclaw"
 PKG_VERSION=$(cat "$PKG_DIR/VERSION" 2>/dev/null | tr -d '[:space:]' || echo "1.0.0")
-NODE_VERSION="${NODE_VERSION:-22.16.0}"
+NODE_VERSION="${NODE_VERSION:-22.15.1}"
 OC_VERSION=$(cat "$CACHE_DIR/openclaw/VERSION" 2>/dev/null | tr -d '[:space:]' || echo "2026.3.8")
 
 echo "╔══════════════════════════════════════════════════════════════╗"

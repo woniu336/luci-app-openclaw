@@ -65,11 +65,9 @@ fi
 case "$UPLOAD_MODE" in
 	offline)
 		UPLOAD_SUBDIR="openclaw-离线安装"
-		FIND_PATTERN='\( -name "*_offline.run" -o -name "README.txt" \)'
 		;;
 	online)
 		UPLOAD_SUBDIR="openclaw-在线安装"
-		FIND_PATTERN='\( -name "*.run" ! -name "*_offline.run" -o -name "*.ipk" -o -name "README.txt" \)'
 		;;
 	*)
 		echo "错误: 无效的 UPLOAD_MODE: $UPLOAD_MODE (可选: offline / online / auto)"
@@ -176,11 +174,12 @@ echo ""
 UPLOAD_FILES=""
 case "$UPLOAD_MODE" in
 	offline)
-		UPLOAD_FILES=$(find "$DIST_DIR" \( -name "*_offline.run" -o -name "README.txt" \) 2>/dev/null)
+		# 离线包: 仅 *_offline.run 文件
+		UPLOAD_FILES=$(find "$DIST_DIR" -name "*_offline.run" 2>/dev/null)
 		;;
 	online)
-		# 在线包: .run (非 offline) + .ipk + README.txt
-		for f in "$DIST_DIR"/*.run "$DIST_DIR"/*.ipk "$DIST_DIR"/README.txt; do
+		# 在线包: .run (非 offline) + .ipk
+		for f in "$DIST_DIR"/*.run "$DIST_DIR"/*.ipk; do
 			[ -f "$f" ] || continue
 			case "$(basename "$f")" in *_offline.run) continue ;; esac
 			UPLOAD_FILES="$UPLOAD_FILES $f"

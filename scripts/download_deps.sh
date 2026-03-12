@@ -9,8 +9,8 @@
 # 产出目录结构:
 #   cache_dir/
 #     node/
-#       node-v22.16.0-linux-x64-musl.tar.xz
-#       node-v22.16.0-linux-arm64-musl.tar.xz
+#       node-v22.15.1-linux-x64-musl.tar.xz
+#       node-v22.15.1-linux-arm64-musl.tar.xz
 #     openclaw/
 #       openclaw-deps-v<version>.tar.gz          (预安装的 node_modules, 跨架构通用)
 # ============================================================================
@@ -27,7 +27,7 @@ case "$CACHE_DIR" in
 esac
 
 # ── 版本配置 (与 openclaw-env 保持一致) ──
-NODE_VERSION="${NODE_VERSION:-22.16.0}"
+NODE_VERSION="${NODE_VERSION:-22.15.1}"
 OC_VERSION="${OC_VERSION:-2026.3.8}"
 
 # ── 下载镜像 ──

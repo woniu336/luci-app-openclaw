@@ -5,7 +5,7 @@ on:
     inputs:
       node_version:
         description: 'Node.js version'
-        default: '22.16.0'
+        default: '22.15.1'
       oc_version:
         description: 'OpenClaw version'
         default: '2026.3.8'
@@ -19,7 +19,7 @@ on:
         default: false
 
 env:
-  NODE_VERSION: ${{ github.event.inputs.node_version || '22.16.0' }}
+  NODE_VERSION: ${{ github.event.inputs.node_version || '22.15.1' }}
   OC_VERSION: ${{ github.event.inputs.oc_version || '2026.3.8' }}
 
 jobs:
