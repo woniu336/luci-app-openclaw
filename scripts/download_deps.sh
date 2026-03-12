@@ -12,7 +12,7 @@
 #       node-v22.15.1-linux-x64-musl.tar.xz
 #       node-v22.15.1-linux-arm64-musl.tar.xz
 #     openclaw/
-#       openclaw-deps-v<version>.tar.gz          (预安装的 node_modules, 跨架构通用)
+#       openclaw-deps-v<version>.tar.gz          (完整 node_modules, 跨架构通用, ~150MB)
 # ============================================================================
 set -e
 
@@ -184,86 +184,15 @@ download_openclaw_deps() {
 	fi
 	echo "  实际版本: v${actual_ver:-$OC_VERSION}"
 
-	# ── 精简 node_modules ──
-	# npm install -g 完全忽略 --omit=optional / --no-optional 标志，
-	# 因此必须通过 post-install 删除来控制包大小。
-	# 目标: 从 ~670MB 精简到 ~430MB (压缩后 ~65MB)
-	echo ""
-	echo "=== 精简 node_modules ==="
-	local NM="$tmp_install/global/lib/node_modules/openclaw/node_modules"
-	local before_size=$(du -sm "$tmp_install/global" 2>/dev/null | awk '{print $1}')
-
-	# ── 第1步: 删除 peerDependencies 和路由器上不可用的原生模块 ──
-	# 这些包使用动态 import() + .catch() 或 lazy require，缺失时不影响启动
-	# koffi (86MB): FFI 库，@mariozechner/pi-tui 可选依赖
-	# node-llama-cpp (33MB): 本地 LLM 推理，peerDependency
-	# @napi-rs/canvas (30MB): 画布渲染，peerDependency，有 .catch() 兜底
-	# playwright-core (10MB): 浏览器自动化，路由器上无浏览器
-	echo "  [1/4] 删除不可用的原生模块 (~159MB)..."
-	rm -rf \
-		"$NM/koffi" \
-		"$NM/node-llama-cpp" \
-		"$NM/@napi-rs" \
-		"$NM/playwright-core" \
-		2>/dev/null || true
-
-	# ── 第2步: 清理 pdfjs-dist 冗余文件 ──
-	# OpenClaw 使用 pdfjs-dist/legacy/build/pdf.mjs (动态import)
-	# 保留 legacy/build/ + cmaps/ + standard_fonts/，删除其余
-	echo "  [2/4] 清理 pdfjs-dist (~33MB)..."
-	rm -rf \
-		"$NM/pdfjs-dist/build" \
-		"$NM/pdfjs-dist/types" \
-		"$NM/pdfjs-dist/web" \
-		"$NM/pdfjs-dist/image_decoders" \
-		"$NM/pdfjs-dist/legacy/web" \
-		"$NM/pdfjs-dist/legacy/image_decoders" \
-		2>/dev/null || true
-
-	# ── 第3步: 删除平台预编译二进制和运行时不需要的文件 ──
-	# @img/sharp-libvips-* 是 sharp 的预编译 libvips (每个平台 ~16MB)
-	# 安装时由 openclaw-env 通过 npm rebuild 按目标平台重建
-	echo "  [3/4] 删除预编译二进制和类型声明 (~23MB)..."
-	rm -rf "$NM/@img" 2>/dev/null || true
-	rm -rf "$NM/bun-types" "$NM/@types" 2>/dev/null || true
-	find "$tmp_install/global" -type d -name "prebuilds" -exec rm -rf {} + 2>/dev/null || true
-	find "$tmp_install/global" -type f -name "*.node" -delete 2>/dev/null || true
-
-	# ── 第4步: 通用文件清理 ──
-	echo "  [4/4] 清理文档、测试和冗余文件..."
-	find "$tmp_install/global" -type f \( \
-		-name "*.md" -o -name "*.markdown" -o \
-		-name "*.js.map" -o -name "*.ts.map" -o -name "*.d.ts.map" -o \
-		-name "*.d.ts" -o \
-		-name "CHANGELOG*" -o -name "CHANGES*" -o -name "HISTORY*" -o \
-		-name "AUTHORS*" -o -name "CONTRIBUTORS*" -o \
-		-name ".npmignore" -o -name ".eslintrc*" -o -name ".jshintrc" -o \
-		-name ".editorconfig" -o -name ".travis.yml" -o \
-		-name "Makefile" -o -name "Gruntfile*" -o -name "Gulpfile*" -o \
-		-name "*.test.js" -o -name "*.spec.js" -o \
-		-name "tsconfig.json" -o -name "tsconfig.*.json" -o \
-		-name ".prettierrc*" -o -name ".babelrc*" \
-	\) -delete 2>/dev/null || true
-	find "$tmp_install/global" -type d \( \
-		-name "test" -o -name "tests" -o -name "__tests__" -o \
-		-name "example" -o -name "examples" -o \
-		-name "docs" -o -name ".github" -o -name ".vscode" -o \
-		-name "benchmark" -o -name "benchmarks" \
-	\) -exec rm -rf {} + 2>/dev/null || true
-
-	# 删除 .bin 符号链接 (安装时由 openclaw-env 重建)
-	find "$tmp_install/global/lib/node_modules/.bin" -type l -delete 2>/dev/null || true
-	find "$tmp_install/global/node_modules/.bin" -type l -delete 2>/dev/null || true
-
-	local after_size=$(du -sm "$tmp_install/global" 2>/dev/null | awk '{print $1}')
-	log_info "精简完成: ${before_size}MB → ${after_size}MB (节省 $((before_size - after_size))MB)"
-
 	# ── 打包为通用 tarball ──
+	# 不精简 node_modules，保留全部功能（飞书/Slack/Discord 等平台 SDK）
+	# 依靠 gzip 压缩控制包大小: ~670MB → ~150MB
 	# 因为 openclaw 是纯 JS 包 (使用 --ignore-scripts)，node_modules 跨架构通用
 	echo ""
 	echo "=== 打包 OpenClaw 依赖 ==="
+	local install_size=$(du -sm "$tmp_install/global" 2>/dev/null | awk '{print $1}')
 	local tarball="$oc_dir/openclaw-deps-v${actual_ver:-$OC_VERSION}.tar.gz"
-	echo "  正在压缩 ${after_size}MB 数据到 tar.gz (可能需要数分钟)..."
+	echo "  正在压缩 ${install_size}MB 数据到 tar.gz (可能需要数分钟)..."
 	# 注意: 不在子 shell 中用 set -e, 避免 tar 在处理损坏的符号链接时意外退出
 	# --warning=no-file-changed: 忽略打包过程中文件被修改的警告
 	if ! tar czf "$tarball" -C "$tmp_install/global" . 2>&1; then
