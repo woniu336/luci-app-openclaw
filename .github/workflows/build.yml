@@ -12,14 +12,6 @@ on:
         required: false
         type: boolean
         default: false
-      node_version:
-        description: 'Node.js 版本 (离线包用)'
-        required: false
-        default: '22.15.1'
-      oc_version:
-        description: 'OpenClaw 版本 (离线包用)'
-        required: false
-        default: '2026.3.8'
       create_release:
         description: '是否创建 Release'
         required: false
@@ -56,6 +48,17 @@ jobs:
           echo "tag=v$VER" >> "$GITHUB_OUTPUT"
           echo "Version: $VER"
 
+      - name: Extract build versions from source
+        id: build_versions
+        run: |
+          # 从 openclaw-env 中提取版本号 (唯一的版本真相源)
+          NODE_VER=$(grep -oP 'NODE_VERSION="\$\{NODE_VERSION:-\K[0-9.]+' root/usr/bin/openclaw-env)
+          OC_VER=$(grep -oP 'OC_TESTED_VERSION="\K[0-9.]+' root/usr/bin/openclaw-env)
+          echo "node_version=${NODE_VER}" >> "$GITHUB_OUTPUT"
+          echo "oc_version=${OC_VER}" >> "$GITHUB_OUTPUT"
+          echo "Node.js: v${NODE_VER}"
+          echo "OpenClaw: v${OC_VER}"
+
       - name: Inject version
         run: |
           VER="${{ steps.version.outputs.version }}"
@@ -89,8 +92,8 @@ jobs:
           chmod +x scripts/download_deps.sh
           sh scripts/download_deps.sh .offline-cache
         env:
-          NODE_VERSION: ${{ github.event.inputs.node_version || '22.15.1' }}
-          OC_VERSION: ${{ github.event.inputs.oc_version || '2026.3.8' }}
+          NODE_VERSION: ${{ steps.build_versions.outputs.node_version }}
+          OC_VERSION: ${{ steps.build_versions.outputs.oc_version }}
 
       - name: Build offline .run (musl only)
         if: github.event.inputs.build_offline == 'true'
@@ -99,7 +102,7 @@ jobs:
           sh scripts/build_offline_run.sh dist/
         env:
           CACHE_DIR: .offline-cache
-          NODE_VERSION: ${{ github.event.inputs.node_version || '22.15.1' }}
+          NODE_VERSION: ${{ steps.build_versions.outputs.node_version }}
 
       # ── 通用步骤 ──
 
