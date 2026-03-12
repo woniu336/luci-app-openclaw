@@ -150,6 +150,8 @@ download_openclaw_deps() {
 	$NPM_CMD install -g "openclaw@${OC_VERSION}" \
 		--prefix="$tmp_install/global" \
 		--ignore-scripts \
+		--omit=dev \
+		--omit=optional \
 		--no-optional \
 		--registry="$NPM_REGISTRY" 2>&1 | tail -20
 
@@ -215,6 +217,18 @@ download_openclaw_deps() {
 	# 删除 node-llama-cpp 等大型原生依赖 (musl 下不可用)
 	find "$tmp_install/global" -type d -name "node-llama-cpp" -exec rm -rf {} + 2>/dev/null || true
 	find "$tmp_install/global" -type d -name "llama-cpp" -exec rm -rf {} + 2>/dev/null || true
+
+	# 删除其他已知的大型非必要包
+	# koffi: FFI 库，~85MB 原生二进制，OpenWrt 上不需要
+	# playwright-core: 浏览器自动化，~10MB，路由器上不用
+	# @img/*: 图片处理原生模块
+	for big_pkg in koffi playwright-core @img; do
+		find "$tmp_install/global" -type d -name "$big_pkg" -path "*/node_modules/*" -exec rm -rf {} + 2>/dev/null || true
+	done
+
+	# 删除所有平台特定的预编译二进制 (.node 文件和 prebuilds 目录)
+	find "$tmp_install/global" -type d -name "prebuilds" -exec rm -rf {} + 2>/dev/null || true
+	find "$tmp_install/global" -type f -name "*.node" -delete 2>/dev/null || true
 
 	# 删除 .bin 目录中的符号链接 (安装时会重建)
 	# 保留 bin 目录但不保留符号链接
