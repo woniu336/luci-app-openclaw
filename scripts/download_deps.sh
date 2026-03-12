@@ -187,7 +187,7 @@ download_openclaw_deps() {
 	# ── 精简 node_modules ──
 	# npm install -g 完全忽略 --omit=optional / --no-optional 标志，
 	# 因此必须通过 post-install 删除来控制包大小。
-	# 目标: 从 ~670MB 精简到 ~440MB (压缩后 ~66MB)
+	# 目标: 从 ~670MB 精简到 ~430MB (压缩后 ~65MB)
 	echo ""
 	echo "=== 精简 node_modules ==="
 	local NM="$tmp_install/global/lib/node_modules/openclaw/node_modules"
@@ -208,13 +208,16 @@ download_openclaw_deps() {
 		2>/dev/null || true
 
 	# ── 第2步: 清理 pdfjs-dist 冗余文件 ──
-	# 只保留 Node.js 运行所需的 build/ 和必要资源
-	echo "  [2/4] 清理 pdfjs-dist (~22MB)..."
+	# OpenClaw 使用 pdfjs-dist/legacy/build/pdf.mjs (动态import)
+	# 保留 legacy/build/ + cmaps/ + standard_fonts/，删除其余
+	echo "  [2/4] 清理 pdfjs-dist (~33MB)..."
 	rm -rf \
-		"$NM/pdfjs-dist/legacy" \
+		"$NM/pdfjs-dist/build" \
 		"$NM/pdfjs-dist/types" \
 		"$NM/pdfjs-dist/web" \
 		"$NM/pdfjs-dist/image_decoders" \
+		"$NM/pdfjs-dist/legacy/web" \
+		"$NM/pdfjs-dist/legacy/image_decoders" \
 		2>/dev/null || true
 
 	# ── 第3步: 删除平台预编译二进制和运行时不需要的文件 ──
